@@ -1,0 +1,30 @@
+{
+    "Format": "2.4.0",
+    "Changes": [
+        {
+            "Action": "Load",
+            "Target": "Data/Objects",
+            "FromFile": "assets/animal-manure.png"
+        },
+        {
+            "Action": "EditData",
+            "Target": "Data/Objects",
+            "Entries": {
+                "ZollernWolf.Manure": {
+                    "Name": "ZollernWolf.ManurePile",
+                    "DisplayName": "A stinky pile of manure.",
+                    "Description": "Manure left behind by a farm animal.",
+                    "Type": "Ring",
+                    "Category": 0,
+                    "Price": 0,
+                    "Texture": "Animanure/Items/manure",
+                    "SpriteIndex": 0,
+                    "Buffs": null,
+                    "ExcludeFromFishingCollection": true,
+                    "ExcludeFromShippingCollection": true,
+                    "ExcludeFromRandomSale": true
+                }
+            }
+        }
+    ]
+}
