@@ -6,6 +6,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 
 using StardewValley;
+using StardewValley.GameData.FarmAnimals;
 
 namespace Animanure;
 
@@ -26,14 +27,18 @@ internal sealed class AnimalManure : Mod {
 
     private static List<FarmAnimal>? farmAnimals;
 
+    private static bool hasRanForDay = false;
+
     public static void MakeDookie(FarmAnimal animal) {
         string animalName = animal.Name;
         monitor!.Log($"Barn Animal {animalName} dropped a dookie!", LogLevel.Debug);
     }
 
-    public static void CheckFullness() {
+    public static void CheckAnimalFullness() {
         AnimalManure.farmAnimals!.ForEach(action: animal => {
             NetInt fullness = animal.fullness;
+            FarmAnimalData data = animal.GetAnimalData();
+
             monitor!.Log($"Barn Animal {animal.Name} fullness: {fullness.Value}", LogLevel.Info);
             if (fullness.Value >= AnimalManure.minimumFullness) {
                 AnimalManure.MakeDookie(animal);
@@ -47,15 +52,13 @@ internal sealed class AnimalManure : Mod {
         monitor = this.Monitor;
         modHelper = helper;
 
-        ManureData? model = modHelper.Data.ReadJsonFile<ManureData>("Items/manure.json") ?? new ManureData();
+        ManureData? manureData = modHelper.Data.ReadJsonFile<ManureData>("Items/manure.json") ?? new ManureData();
 
         IModEvents modEvents = helper.Events;
         IGameLoopEvents gameLoop = modEvents.GameLoop;
         gameLoop.GameLaunched += this.OnGameLaunched!;
-        gameLoop.UpdateTicked += this.OnUpdateTicked!;
         gameLoop.OneSecondUpdateTicked += this.OnOneSecondUpdateTicked!;
         gameLoop.DayStarted += this.OnDayStarted!;
-        gameLoop.SaveLoaded += this.OnSaveLoaded!;
         helper.Events.Input.ButtonsChanged += this.OnButtonsChanged!;
     }
 
@@ -100,23 +103,19 @@ internal sealed class AnimalManure : Mod {
         }
     }
 
-    private void OnUpdateTicked(object sender, UpdateTickedEventArgs e) {
-        //
-    }
-
-    private async void OnOneSecondUpdateTicked(object sender, OneSecondUpdateTickedEventArgs e) {
+    private void OnOneSecondUpdateTicked(object sender, OneSecondUpdateTickedEventArgs e) {
         if (!Context.IsWorldReady) {
             return;
         }
-        AnimalManure.CheckFullness();
+        if (Game1.timeOfDay >= 800 && !AnimalManure.hasRanForDay) {
+            AnimalManure.CheckAnimalFullness();
+            AnimalManure.hasRanForDay = true;
+        }
     }
 
     private void OnDayStarted(object sender, DayStartedEventArgs e) {
         Farm farm = Game1.getFarm();
         AnimalManure.farmAnimals = farm.getAllFarmAnimals();
-    }
-
-    private void OnSaveLoaded(object sender, SaveLoadedEventArgs e) {
-        //
+        AnimalManure.hasRanForDay = false;
     }
 }
