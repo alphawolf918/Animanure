@@ -6,6 +6,7 @@
     "UniqueID": "ZollernWolf.Animanure",
     "EntryDll": "Animanure.dll",
     "MinimumApiVersion": "4.1.5",
+    "MinimumGameVersion" :  "1.6.9",
     "UpdateKeys": [],
     "Dependencies": [
         {

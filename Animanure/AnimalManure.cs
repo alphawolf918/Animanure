@@ -1,4 +1,5 @@
 ﻿using Animanure.API;
+using Animanure.Managers;
 
 using Netcode;
 
@@ -17,25 +18,37 @@ internal sealed class AnimalManure : Mod {
 
     internal static IMonitor? monitor;
     internal static IModHelper? modHelper;
+    internal static IManifest? modManifest;
 
     private IJsonAssetsAPI? _jsonAssetsApi;
     private IContentPatcherAPI? _contentPatcherApi;
 
+    internal static AssetManager? assetManager;
+
     internal static string GetFromi18n(string key) => instance!.Helper.Translation.Get(key);
 
-    private static readonly int minimumFullness = 5;
+    private static readonly int minimumFullness = 255; //Completely full
 
-    private static List<FarmAnimal>? farmAnimals;
+    private List<FarmAnimal>? farmAnimals;
 
-    private static bool hasRanForDay = false;
+    private bool hasRanForDay = false;
+    private readonly int timeOfDayToRun = 800; //8 AM
 
+    /// <summary>
+    /// Barn animal leaves behind manure.
+    /// </summary>
+    /// <param name="animal">The animal to leave the manure behind.</param>
     public static void MakeDookie(FarmAnimal animal) {
         string animalName = animal.Name;
+        GameLocation animalLocation = animal.currentLocation;
+        if (animalLocation is not null) {
+
+        }
         monitor!.Log($"Barn Animal {animalName} dropped a dookie!", LogLevel.Debug);
     }
 
-    public static void CheckAnimalFullness() {
-        AnimalManure.farmAnimals!.ForEach(action: animal => {
+    public void CheckAnimalFullness() {
+        this.farmAnimals!.ForEach(action: animal => {
             NetInt fullness = animal.fullness;
             FarmAnimalData data = animal.GetAnimalData();
 
@@ -51,15 +64,21 @@ internal sealed class AnimalManure : Mod {
         Config = this.Helper.ReadConfig<ModConfig>();
         monitor = this.Monitor;
         modHelper = helper;
-
-        ManureData? manureData = modHelper.Data.ReadJsonFile<ManureData>("Items/manure.json") ?? new ManureData();
+        modManifest = this.ModManifest;
+        assetManager = new(modHelper);
 
         IModEvents modEvents = helper.Events;
         IGameLoopEvents gameLoop = modEvents.GameLoop;
         gameLoop.GameLaunched += this.OnGameLaunched!;
         gameLoop.OneSecondUpdateTicked += this.OnOneSecondUpdateTicked!;
         gameLoop.DayStarted += this.OnDayStarted!;
-        helper.Events.Input.ButtonsChanged += this.OnButtonsChanged!;
+        helper.Events.Multiplayer.ModMessageReceived += this.OnModMessageReceived!;
+
+        this.LoadContentPacks();
+    }
+
+    private void OnModMessageReceived(object sender, ModMessageReceivedEventArgs e) {
+        //
     }
 
     private void OnGameLaunched(object sender, GameLaunchedEventArgs e) {
@@ -87,35 +106,26 @@ internal sealed class AnimalManure : Mod {
         if (Helper.ModRegistry.IsLoaded("spacechase0.JsonAssets") && APIManager.HookIntoJsonAssets(Helper)) {
             _jsonAssetsApi = APIManager.GetJsonAssetsApi();
         }
-
-        //Content Packs
-        foreach (IContentPack contentPack in this.Helper.ContentPacks.GetOwned()) {
-            if (!contentPack.HasFile("content.json")) {
-                monitor!.Log("content.json file missing for content pack!", LogLevel.Error);
-            }
-            this.Monitor.Log($"Reading content pack: {contentPack.Manifest.Name} {contentPack.Manifest.Version} from {contentPack.DirectoryPath}");
-        }
     }
 
-    private void OnButtonsChanged(object sender, ButtonsChangedEventArgs e) {
-        if (!Context.IsPlayerFree) {
-            return;
-        }
+    private void LoadContentPacks(string? packId = null) {
+        List<IContentPack>? contentPacks = Helper.ContentPacks!.GetOwned().Where(c => String.IsNullOrEmpty(packId) is true || c.Manifest.UniqueID.Equals(packId, StringComparison.OrdinalIgnoreCase)).ToList();
+        contentPacks.Add(assetManager!.GetLocalPack(update: true));
     }
 
     private void OnOneSecondUpdateTicked(object sender, OneSecondUpdateTickedEventArgs e) {
         if (!Context.IsWorldReady) {
             return;
         }
-        if (Game1.timeOfDay >= 800 && !AnimalManure.hasRanForDay) {
-            AnimalManure.CheckAnimalFullness();
-            AnimalManure.hasRanForDay = true;
+        if (Game1.timeOfDay >= this.timeOfDayToRun && !this.hasRanForDay) {
+            this.CheckAnimalFullness();
+            this.hasRanForDay = true;
         }
     }
 
     private void OnDayStarted(object sender, DayStartedEventArgs e) {
         Farm farm = Game1.getFarm();
-        AnimalManure.farmAnimals = farm.getAllFarmAnimals();
-        AnimalManure.hasRanForDay = false;
+        this.farmAnimals = farm.getAllFarmAnimals();
+        this.hasRanForDay = false;
     }
 }
