@@ -23,7 +23,7 @@ internal class AssetManager {
 
     internal IContentPack GetLocalPack(bool update = false) {
         if (localPack is null || update is true) {
-            localPack = AnimalManure.modHelper!.ContentPacks.CreateTemporary(Path.Combine(AnimalManure.modHelper.DirectoryPath, "assets"), "ZollernWolf.AnimalManure", "ZW - Manure", "Local appearance pack for Animanure.", AnimalManure.modManifest!.Author, AnimalManure.modManifest.Version);
+            localPack = AnimalManure.modHelper!.ContentPacks.CreateTemporary(Path.Combine(AnimalManure.modHelper.DirectoryPath, "assets"), "AnimalManure", "", "Testing to try to add item", AnimalManure.modManifest!.Author, AnimalManure.modManifest.Version);
         }
         return localPack;
     }

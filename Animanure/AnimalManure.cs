@@ -108,8 +108,10 @@ internal sealed class AnimalManure : Mod {
         }
     }
 
-    private void LoadContentPacks(string? packId = null) {
-        List<IContentPack>? contentPacks = Helper.ContentPacks!.GetOwned().Where(c => String.IsNullOrEmpty(packId) is true || c.Manifest.UniqueID.Equals(packId, StringComparison.OrdinalIgnoreCase)).ToList();
+    private void LoadContentPacks(bool silent = false, string? packId = null) {
+        IContentPackHelper? cPacks = Helper.ContentPacks!;
+        IEnumerable<IContentPack> ownedPacks = cPacks!.GetOwned();
+        List<IContentPack>? contentPacks = ownedPacks.Where(c => String.IsNullOrEmpty(packId) is true || c.Manifest.UniqueID.Equals(packId, StringComparison.OrdinalIgnoreCase)).ToList();
         contentPacks.Add(assetManager!.GetLocalPack(update: true));
     }
 
@@ -127,5 +129,11 @@ internal sealed class AnimalManure : Mod {
         Farm farm = Game1.getFarm();
         this.farmAnimals = farm.getAllFarmAnimals();
         this.hasRanForDay = false;
+    }
+
+    private void EnsureKeyExists(string key) {
+        if (!Game1.player.modData.ContainsKey(key)) {
+            Game1.player.modData[key] = null;
+        }
     }
 }
