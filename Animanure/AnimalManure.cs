@@ -1,4 +1,8 @@
-﻿using Animanure.API;
+﻿
+
+using Animanure.API;
+
+using Microsoft.Xna.Framework;
 
 using Netcode;
 
@@ -6,6 +10,8 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 
 using StardewValley;
+
+using SObject = StardewValley.Object;
 
 namespace Animanure;
 
@@ -28,7 +34,7 @@ internal sealed class AnimalManure : Mod {
     private static readonly int minimumFullness = 255; //Completely full
 
     private bool hasRanForDay = false;
-    private readonly int timeOfDayToRun = 700; //7 AM
+    private readonly int timeOfDayToRun = 730; //7:30 AM
 
     /// <summary>
     /// Barn animal leaves behind manure.
@@ -40,7 +46,15 @@ internal sealed class AnimalManure : Mod {
 
         //Only make the messes outdoors.
         if (animalLocation.IsOutdoors) {
-            //
+            string itemName = "(O)zollernwolf.cp_manure";
+            SObject @manureObj = ItemRegistry.Create<SObject>(itemName);
+            Vector2 vec2 = animal.Tile;
+
+            if (!animalLocation.tryPlaceObject(vec2, @manureObj)) {
+                monitor!.Log("Unable to place manure item object.", LogLevel.Error);
+            }
+        } else {
+            monitor!.Log($"{animalName} was not outdoors during check runs.", LogLevel.Warn);
         }
         monitor!.Log($"Barn Animal {animalName} dropped a dookie!", LogLevel.Debug);
     }
