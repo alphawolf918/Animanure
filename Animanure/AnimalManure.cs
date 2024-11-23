@@ -1,5 +1,4 @@
 ﻿using Animanure.API;
-using Animanure.Managers;
 
 using Netcode;
 
@@ -7,7 +6,6 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 
 using StardewValley;
-using StardewValley.GameData.FarmAnimals;
 
 namespace Animanure;
 
@@ -23,16 +21,14 @@ internal sealed class AnimalManure : Mod {
     private IJsonAssetsAPI? _jsonAssetsApi;
     private IContentPatcherAPI? _contentPatcherApi;
 
-    internal static AssetManager? assetManager;
-
     internal static string GetFromi18n(string key) => instance!.Helper.Translation.Get(key);
-
-    private static readonly int minimumFullness = 255; //Completely full
 
     private List<FarmAnimal>? farmAnimals;
 
+    private static readonly int minimumFullness = 255; //Completely full
+
     private bool hasRanForDay = false;
-    private readonly int timeOfDayToRun = 800; //8 AM
+    private readonly int timeOfDayToRun = 700; //7 AM
 
     /// <summary>
     /// Barn animal leaves behind manure.
@@ -41,23 +37,24 @@ internal sealed class AnimalManure : Mod {
     public static void MakeDookie(FarmAnimal animal) {
         string animalName = animal.Name;
         GameLocation animalLocation = animal.currentLocation;
-        if (animalLocation is not null) {
 
+        //Only make the messes outdoors.
+        if (animalLocation.IsOutdoors) {
+            //
         }
         monitor!.Log($"Barn Animal {animalName} dropped a dookie!", LogLevel.Debug);
     }
 
-    public void CheckAnimalFullness() {
-        this.farmAnimals!.ForEach(action: animal => {
-            NetInt fullness = animal.fullness;
-            FarmAnimalData data = animal.GetAnimalData();
-
-            monitor!.Log($"Barn Animal {animal.Name} fullness: {fullness.Value}", LogLevel.Info);
-            if (fullness.Value >= AnimalManure.minimumFullness) {
-                AnimalManure.MakeDookie(animal);
-            }
-        });
-    }
+    /// <summary>
+    /// Check fullness of the current barn animal.
+    /// </summary>
+    public void CheckAnimalFullness() => this.farmAnimals!.ForEach(action: animal => {
+        NetInt fullness = animal.fullness;
+        monitor!.Log($"Barn Animal {animal.Name} fullness: {fullness.Value}", LogLevel.Info);
+        if (fullness.Value >= AnimalManure.minimumFullness) {
+            AnimalManure.MakeDookie(animal);
+        }
+    });
 
     public override void Entry(IModHelper helper) {
         instance = this;
@@ -65,20 +62,12 @@ internal sealed class AnimalManure : Mod {
         monitor = this.Monitor;
         modHelper = helper;
         modManifest = this.ModManifest;
-        assetManager = new(modHelper);
 
         IModEvents modEvents = helper.Events;
         IGameLoopEvents gameLoop = modEvents.GameLoop;
         gameLoop.GameLaunched += this.OnGameLaunched!;
         gameLoop.OneSecondUpdateTicked += this.OnOneSecondUpdateTicked!;
         gameLoop.DayStarted += this.OnDayStarted!;
-        helper.Events.Multiplayer.ModMessageReceived += this.OnModMessageReceived!;
-
-        this.LoadContentPacks();
-    }
-
-    private void OnModMessageReceived(object sender, ModMessageReceivedEventArgs e) {
-        //
     }
 
     private void OnGameLaunched(object sender, GameLaunchedEventArgs e) {
@@ -108,13 +97,6 @@ internal sealed class AnimalManure : Mod {
         }
     }
 
-    private void LoadContentPacks(bool silent = false, string? packId = null) {
-        IContentPackHelper? cPacks = Helper.ContentPacks!;
-        IEnumerable<IContentPack> ownedPacks = cPacks!.GetOwned();
-        List<IContentPack>? contentPacks = ownedPacks.Where(c => String.IsNullOrEmpty(packId) is true || c.Manifest.UniqueID.Equals(packId, StringComparison.OrdinalIgnoreCase)).ToList();
-        contentPacks.Add(assetManager!.GetLocalPack(update: true));
-    }
-
     private void OnOneSecondUpdateTicked(object sender, OneSecondUpdateTickedEventArgs e) {
         if (!Context.IsWorldReady) {
             return;
@@ -129,11 +111,5 @@ internal sealed class AnimalManure : Mod {
         Farm farm = Game1.getFarm();
         this.farmAnimals = farm.getAllFarmAnimals();
         this.hasRanForDay = false;
-    }
-
-    private void EnsureKeyExists(string key) {
-        if (!Game1.player.modData.ContainsKey(key)) {
-            Game1.player.modData[key] = null;
-        }
     }
 }
